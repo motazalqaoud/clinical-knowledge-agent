@@ -25,7 +25,7 @@ used in place of real models).
 - Python 3.11+, type hints on all functions.
 - Google-style docstrings with `Args`, `Returns`, and a `Clinical note`
   section where the reasoning behind a design choice isn't obvious from
-  the code (see `.github/copilot-instructions.md` for the full house style).
+  the code (see `.github/CODING_GUIDELINES.md` for the full house style).
 - Formatted with Black (line length 88); linted with Ruff.
 - Never hardcode drug dosages without a physician-confirmation note;
   always preserve safety disclaimers in patient-facing output; prefer
