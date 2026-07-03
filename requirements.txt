@@ -1,4 +1,8 @@
-# Base requirements - AI coding assistant will expand this
-# based on AI_PROMPT.md when scaffolding the project
+# Clinical Knowledge Agent — runtime dependencies
 numpy>=1.24.0
-pandas>=2.0.0
+sentence-transformers>=2.7.0
+faiss-cpu>=1.8.0
+transformers>=4.40.0
+torch>=2.2.0
+pymupdf>=1.24.0
+gradio>=4.30.0
