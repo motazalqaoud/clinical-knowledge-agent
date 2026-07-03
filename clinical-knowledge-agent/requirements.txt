@@ -1,4 +1,0 @@
-# Base requirements - AI coding assistant will expand this
-# based on AI_PROMPT.md when scaffolding the project
-numpy>=1.24.0
-pandas>=2.0.0
