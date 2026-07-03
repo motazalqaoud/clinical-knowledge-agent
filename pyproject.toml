@@ -1,0 +1,22 @@
+[project]
+name = "clinical-knowledge-agent"
+version = "0.1.0"
+description = "RAG system for querying clinical documents with grounded, cited, zero-hallucination answers."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Motaz Alqaoud" }]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
