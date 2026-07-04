@@ -76,6 +76,7 @@ class RAGChain:
         model_name: str = DEFAULT_GENERATION_MODEL_NAME,
         score_threshold: float = 0.35,
         top_k: int = 4,
+        max_context_chars: int = 1200,
     ) -> None:
         """Initializes the chain.
 
@@ -94,6 +95,14 @@ class RAGChain:
                 to the insufficient-information response without calling
                 the generator. Tunable; not a clinical claim.
             top_k: Number of passages to retrieve per query.
+            max_context_chars: Cap on the total characters of retrieved
+                text fed into the prompt. Chunks are added in
+                descending-score order until this budget would be
+                exceeded (the first chunk is always kept even if it alone
+                exceeds the budget). Keeps the prompt within the
+                generation model's token window deterministically, rather
+                than relying on tokenizer-level truncation, which could
+                otherwise silently cut off the question itself.
         """
         self._embedder = embedder
         self._vector_store = vector_store
@@ -101,11 +110,23 @@ class RAGChain:
         self._model_name = model_name
         self._score_threshold = score_threshold
         self._top_k = top_k
+        self._max_context_chars = max_context_chars
 
     def _ensure_generator(self) -> Any:
         if self._generator is None:
             self._generator = _Seq2SeqGenerator(self._model_name)
         return self._generator
+
+    def _select_within_budget(self, results: list[SearchResult]) -> list[SearchResult]:
+        """Selects a prefix of results whose combined text fits the budget."""
+        selected: list[SearchResult] = []
+        total_chars = 0
+        for result in results:
+            if selected and total_chars + len(result.text) > self._max_context_chars:
+                break
+            selected.append(result)
+            total_chars += len(result.text)
+        return selected
 
     def query(self, question: str) -> RAGResponse:
         """Answers a question, grounded strictly in retrieved context.
@@ -129,10 +150,11 @@ class RAGChain:
                 grounded=False,
             )
 
-        prompt = build_grounded_prompt(question, [r.text for r in results])
+        selected_results = self._select_within_budget(results)
+        prompt = build_grounded_prompt(question, [r.text for r in selected_results])
         generator = self._ensure_generator()
         raw_output = generator(prompt, max_new_tokens=256)[0]["generated_text"]
 
         grounded = not is_insufficient(raw_output)
         answer = append_disclaimer(raw_output)
-        return RAGResponse(answer=answer, sources=results, grounded=grounded)
+        return RAGResponse(answer=answer, sources=selected_results, grounded=grounded)

@@ -20,6 +20,14 @@ def test_build_grounded_prompt_includes_question_and_context():
     assert "ONLY the information in CONTEXT" in prompt
 
 
+def test_build_grounded_prompt_places_question_before_context():
+    prompt = build_grounded_prompt(
+        "What is the target HbA1c?", ["HbA1c < 7.0% is recommended."]
+    )
+
+    assert prompt.index("QUESTION:") < prompt.index("CONTEXT:")
+
+
 def test_build_grounded_prompt_handles_empty_context():
     prompt = build_grounded_prompt("Any question?", [])
     assert "Any question?" in prompt
