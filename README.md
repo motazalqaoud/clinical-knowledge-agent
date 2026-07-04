@@ -16,7 +16,7 @@ Key capabilities:
 - **Zero-hallucination generation** — answers only from retrieved context; explicitly says "insufficient information" instead of guessing, and never even calls the generator when retrieval confidence is too low
 - **100% local pipeline** — `sentence-transformers/all-MiniLM-L6-v2` for embeddings, FAISS for retrieval, `Qwen2.5-1.5B-Instruct` for generation — no cloud APIs, no OpenAI key, no patient data ever leaves the machine it runs on
 - **Mandatory safety disclaimer** — every response, grounded or not, ends with a consult-a-licensed-professional notice
-- **Lightweight evaluation harness** (`scripts/evaluate.py`) — scripted retrieval/groundedness checks against the sample document, not just unit tests
+- **Lightweight evaluation harness** (`scripts/evaluate.py`) — scripted retrieval/groundedness checks against the sample documents, not just unit tests
 - **Fully offline test suite** — model-dependent components are dependency-injected, so `pytest` never touches the network
 
 ## Architecture
@@ -102,7 +102,7 @@ access to `huggingface.co`. After that, everything runs locally and offline.
 
 ## Verified example
 
-Real output from the deployed app (bundled synthetic sample document):
+Real output from the deployed app (bundled synthetic sample documents):
 
 > **Q:** What is the target HbA1c for most adults with type 2 diabetes?
 >
@@ -137,7 +137,7 @@ explicit refusal instead:
 ## Evaluation
 
 `scripts/evaluate.py` runs a small fixed set of questions against the
-bundled sample document and checks two things per question: whether
+bundled sample documents and checks two things per question: whether
 groundedness matched expectation (should it have answered, or correctly
 declined?), and whether expected keywords showed up in grounded answers.
 
@@ -150,10 +150,15 @@ python scripts/evaluate.py --fake   # offline dry run of the harness itself
 
 This is a lightweight sanity check, not a clinical validation study —
 a real accuracy benchmark would need a much larger, clinician-reviewed
-question set well beyond what a single synthetic sample document can
-support.
+question set well beyond what a couple of synthetic sample documents
+can support.
 
 ### Measured results
+
+> **Note:** the numbers below are from the original 6-question,
+> single-document evaluation. The eval set has since grown to 10
+> questions across both sample documents (see `scripts/evaluate.py`) —
+> these numbers need a re-run to reflect the current set.
 
 Real run against `Qwen/Qwen2.5-1.5B-Instruct` + `all-MiniLM-L6-v2`
 (`python scripts/evaluate.py`, no `--fake`):
@@ -232,7 +237,7 @@ black --check src tests app.py scripts
   licensed healthcare professional — this is not a diagnostic or
   prescribing tool.
 - **Not validated for clinical use.** This is a portfolio/educational
-  project. The bundled sample document is entirely synthetic/fabricated,
+  project. The bundled sample documents are entirely synthetic/fabricated,
   and the evaluation harness is a sanity check, not a clinical accuracy
   study.
 - **Local-only by design**, which supports HIPAA-friendly deployments,

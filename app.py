@@ -28,6 +28,13 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_DOCS_DIR = Path("examples/sample_docs")
 
+EXAMPLE_QUESTIONS = [
+    "What is the target HbA1c for most adults with type 2 diabetes?",
+    "What is the typical starting dose of Metformin?",
+    "What is the target blood pressure for most adults with hypertension?",
+    "What is the typical starting dose of Lisinopril?",
+]
+
 _embedder = ClinicalEmbedder()
 _vector_store: FAISSVectorStore | None = None
 _rag_chain: RAGChain | None = None
@@ -42,6 +49,13 @@ def _load_existing_store() -> FAISSVectorStore | None:
 
 _vector_store = _load_existing_store()
 _ingested_sources: set[str] = set(_vector_store.sources) if _vector_store else set()
+
+
+def _sources_display() -> str:
+    """Renders the currently-ingested source filenames for the UI panel."""
+    if not _ingested_sources:
+        return "No documents ingested yet."
+    return "\n".join(f"- {name}" for name in sorted(_ingested_sources))
 
 
 def _get_rag_chain() -> RAGChain:
@@ -107,22 +121,29 @@ def ingest_paths(paths: list[str]) -> str:
         return f"Ingestion failed: {exc}"
 
 
-def handle_upload(files) -> str:
+def handle_upload(files) -> tuple[str, str]:
     """Gradio callback: ingests uploaded files."""
     if not files:
-        return "No files selected."
+        return "No files selected.", _sources_display()
     paths = [f.name if hasattr(f, "name") else f for f in files]
-    return ingest_paths(paths)
+    status = ingest_paths(paths)
+    return status, _sources_display()
 
 
-def handle_load_sample() -> str:
+def handle_load_sample() -> tuple[str, str]:
     """Gradio callback: ingests the bundled synthetic sample documents."""
     if not SAMPLE_DOCS_DIR.exists():
-        return f"Sample docs directory not found: {SAMPLE_DOCS_DIR}"
+        return f"Sample docs directory not found: {SAMPLE_DOCS_DIR}", _sources_display()
     paths = [str(p) for p in sorted(SAMPLE_DOCS_DIR.glob("*")) if p.is_file()]
     if not paths:
-        return "No sample documents found."
-    return ingest_paths(paths)
+        return "No sample documents found.", _sources_display()
+    status = ingest_paths(paths)
+    return status, _sources_display()
+
+
+def handle_clear() -> list:
+    """Gradio callback: clears the chat history without touching the index."""
+    return []
 
 
 def handle_query(question: str, history: list[dict]) -> tuple[list[dict], str]:
@@ -172,6 +193,11 @@ with gr.Blocks(title="Clinical Knowledge Agent") as demo:
             ingest_button = gr.Button("Ingest uploaded documents")
             sample_button = gr.Button("Load sample documents")
             ingest_status = gr.Textbox(label="Ingestion status", interactive=False)
+            ingested_list = gr.Textbox(
+                label="Ingested documents",
+                value=_sources_display(),
+                interactive=False,
+            )
 
         with gr.Column(scale=2):
             gr.Markdown("### 2. Ask a question")
@@ -179,16 +205,28 @@ with gr.Blocks(title="Clinical Knowledge Agent") as demo:
             question_box = gr.Textbox(
                 label="Question", placeholder="e.g. What is the target HbA1c?"
             )
-            ask_button = gr.Button("Ask")
+            with gr.Row():
+                ask_button = gr.Button("Ask")
+                clear_button = gr.Button("Clear conversation")
+            gr.Examples(
+                examples=[[q] for q in EXAMPLE_QUESTIONS],
+                inputs=question_box,
+                label="Example questions",
+            )
 
-    ingest_button.click(handle_upload, inputs=file_upload, outputs=ingest_status)
-    sample_button.click(handle_load_sample, inputs=None, outputs=ingest_status)
+    ingest_button.click(
+        handle_upload, inputs=file_upload, outputs=[ingest_status, ingested_list]
+    )
+    sample_button.click(
+        handle_load_sample, inputs=None, outputs=[ingest_status, ingested_list]
+    )
     ask_button.click(
         handle_query, inputs=[question_box, chatbot], outputs=[chatbot, question_box]
     )
     question_box.submit(
         handle_query, inputs=[question_box, chatbot], outputs=[chatbot, question_box]
     )
+    clear_button.click(handle_clear, inputs=None, outputs=chatbot)
 
 
 if __name__ == "__main__":
