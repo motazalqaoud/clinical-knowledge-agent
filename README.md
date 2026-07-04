@@ -222,7 +222,7 @@ this file so the two don't collide.
 
 ## About the Author
 
-**Motaz Alqaoud, **
+**Motaz Alqaoud,**
 PhD in Biomedical Engineering with a focus on medical image analysis and deep learning.
 Senior AI/ML Engineer specializing in medical imaging, RAG systems, and clinical AI.
 
