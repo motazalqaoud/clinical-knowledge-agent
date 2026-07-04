@@ -4,25 +4,24 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
-A **Retrieval-Augmented Generation (RAG) system** for querying clinical
-documents — guidelines, research papers, drug inserts — with grounded,
-cited, zero-hallucination answers. Runs **100% locally**: no cloud APIs,
-no OpenAI key, no patient data ever leaves the machine it runs on.
+A **Retrieval-Augmented Generation (RAG) system** for querying clinical documents — guidelines, research papers, drug inserts — with grounded, cited, zero-hallucination answers, running **100% locally**.
+
+## What is this about?
+
+Clinical text is unforgiving of small errors: a dropped "mg", a torn-off "BID", or a split lab-value threshold can flip an answer's meaning. This project treats that as a first-class engineering problem, not an afterthought.
+
+Key capabilities:
+
+- **Medical-aware chunking** — never splits a drug dosage (`500mg`), a lab value (`HbA1c < 7.0%`), or a dosing-frequency abbreviation (`QD`, `BID`, `TID`, `QID`, `PRN`, `QHS`) across a chunk boundary
+- **Zero-hallucination generation** — answers only from retrieved context; explicitly says "insufficient information" instead of guessing, and never even calls the generator when retrieval confidence is too low
+- **100% local pipeline** — `sentence-transformers/all-MiniLM-L6-v2` for embeddings, FAISS for retrieval, `Qwen2.5-1.5B-Instruct` for generation — no cloud APIs, no OpenAI key, no patient data ever leaves the machine it runs on
+- **Mandatory safety disclaimer** — every response, grounded or not, ends with a consult-a-licensed-professional notice
+- **Lightweight evaluation harness** (`scripts/evaluate.py`) — scripted retrieval/groundedness checks against the sample document, not just unit tests
+- **Fully offline test suite** — model-dependent components are dependency-injected, so `pytest` never touches the network
 
 **Author:** Motaz Alqaoud, PhD — Biomedical Engineer, Senior AI/ML Engineer.
 Part of the [Precision Oncology AI Platform](https://github.com/motazalqaoud/precision-oncology-ai-platform)
 (a 9-module portfolio) — see that repo for how this module connects to the others.
-
-## Why this exists
-
-Clinical text is unforgiving of small errors: a dropped "mg", a torn-off
-"BID", or a split lab-value threshold can flip an answer's meaning. This
-project's chunker is medical-aware — it never splits a drug dosage
-(`500mg`), a lab value (`HbA1c < 7.0%`), or a dosing-frequency
-abbreviation (`QD`, `BID`, `TID`, `QID`, `PRN`, `QHS`) across a chunk
-boundary — and its answers refuse to guess: if the retrieved context
-doesn't support an answer, the agent says so explicitly instead of
-fabricating one.
 
 ## Architecture
 
@@ -67,7 +66,7 @@ fabricating one.
 See [`docs/architecture.md`](docs/architecture.md) for more detail on the
 chunking guard and the grounding/insufficient-information logic.
 
-## Project structure
+## Repository structure
 
 ```
 clinical-knowledge-agent/
@@ -77,25 +76,23 @@ clinical-knowledge-agent/
 │   ├── retrieval/      vector_store.py
 │   ├── generation/     rag_chain.py
 │   └── utils/          clinical_prompts.py
+├── scripts/
+│   └── evaluate.py     retrieval/groundedness evaluation harness
 ├── app.py              Gradio UI
 ├── examples/           synthetic sample clinical documents
-├── tests/               pytest suite (fully offline — no model downloads)
+├── tests/              pytest suite (fully offline — no model downloads)
 ├── notebooks/          demo walkthrough notebook
 ├── docs/               architecture notes
+├── deploy/             Hugging Face Space deployment files
 └── data/               local FAISS index + uploads (gitignored)
 ```
 
-## Install
+## Quickstart
 
 Requires Python 3.11+.
 
 ```bash
 pip install -r requirements.txt
-```
-
-## Run the app
-
-```bash
 python app.py
 ```
 
@@ -107,19 +104,85 @@ The first run downloads `sentence-transformers/all-MiniLM-L6-v2` and
 `Qwen/Qwen2.5-1.5B-Instruct` from Hugging Face — this requires network
 access to `huggingface.co`. After that, everything runs locally and offline.
 
-## Example
+## Verified example
+
+Real output from the deployed app (bundled synthetic sample document):
 
 > **Q:** What is the target HbA1c for most adults with type 2 diabetes?
 >
-> **A:** Target HbA1c < 7.0% is recommended for most non-pregnant adults.
+> **A:** The target HbA1c for most non-pregnant adults is < 7.0%. A less
+> stringent goal of HbA1c < 8.0% may be appropriate for patients with a
+> history of severe hypoglycemia, limited life expectancy, or extensive
+> comorbid conditions.
 >
-> **Sources:** diabetes_management_guideline.md (page 1, score 0.81)
+> **Sources:** diabetes_management_guideline.md (page 1, score 0.59),
+> diabetes_management_guideline.md (page 1, score 0.54)
 >
 > ---
 > **This information is for educational purposes only and is not a
 > substitute for professional medical judgment. Please consult a
 > licensed healthcare professional before making any clinical or
 > treatment decisions.**
+
+And the safety behavior on an out-of-scope question — no fabrication, an
+explicit refusal instead:
+
+> **Q:** What is the capital of France?
+>
+> **A:** I don't have enough information in the provided documents to
+> answer this question confidently.
+>
+> ---
+> **This information is for educational purposes only and is not a
+> substitute for professional medical judgment. Please consult a
+> licensed healthcare professional before making any clinical or
+> treatment decisions.**
+
+## Evaluation
+
+`scripts/evaluate.py` runs a small fixed set of questions against the
+bundled sample document and checks two things per question: whether
+groundedness matched expectation (should it have answered, or correctly
+declined?), and whether expected keywords showed up in grounded answers.
+
+```bash
+python scripts/evaluate.py          # real embedder + real generator
+python scripts/evaluate.py --fake   # offline dry run of the harness itself
+                                     # (no model download; not a real
+                                     # quality measurement)
+```
+
+This is a lightweight sanity check, not a clinical validation study —
+a real accuracy benchmark would need a much larger, clinician-reviewed
+question set well beyond what a single synthetic sample document can
+support.
+
+## Clinical Context
+
+Most RAG tutorials miss the clinical reality. Here's what's different
+about this repo:
+
+| Common RAG Tutorial | This Repo |
+|---|---|
+| Fixed-size chunking, splits mid-token | Medical-aware chunking — dosages, lab values, frequency abbreviations never split |
+| Cloud API + API key required | 100% local — no OpenAI key, no data leaves the machine |
+| Always returns an answer | Explicit "insufficient information" fallback rather than fabricating |
+| No safety framing | Every response — grounded or not — carries a consult-a-professional disclaimer |
+| Hardcoded model calls | Embedder/generator are dependency-injected, swappable, and unit-testable without real models |
+| Unit tests only | Unit tests *and* a scripted retrieval/groundedness evaluation harness |
+
+See [`docs/architecture.md`](docs/architecture.md) for the full design rationale.
+
+## Tech Stack
+
+| Tool | Purpose |
+|---|---|
+| `sentence-transformers` | Local embedding model (`all-MiniLM-L6-v2`) |
+| `faiss-cpu` | Local vector similarity search |
+| `transformers` / `torch` | Local generation model (`Qwen2.5-1.5B-Instruct`) |
+| `pymupdf` | PDF text extraction |
+| `gradio` | Web UI |
+| `pytest` / `ruff` / `black` | Testing, linting, formatting |
 
 ## Running the tests
 
@@ -131,8 +194,8 @@ Model-dependent components (`ClinicalEmbedder`, the generator in
 ```bash
 pip install -r requirements-dev.txt
 pytest -q --cov=src
-ruff check src tests app.py
-black --check src tests app.py
+ruff check src tests app.py scripts
+black --check src tests app.py scripts
 ```
 
 ## Limitations & safety
@@ -144,7 +207,9 @@ black --check src tests app.py
   licensed healthcare professional — this is not a diagnostic or
   prescribing tool.
 - **Not validated for clinical use.** This is a portfolio/educational
-  project. The bundled sample document is entirely synthetic/fabricated.
+  project. The bundled sample document is entirely synthetic/fabricated,
+  and the evaluation harness is a sanity check, not a clinical accuracy
+  study.
 - **Local-only by design**, which supports HIPAA-friendly deployments,
   but this repository itself has not undergone a compliance review —
   treat it as a reference implementation, not a certified product.
@@ -153,12 +218,20 @@ black --check src tests app.py
 
 `app.py` + `requirements.txt` at the repo root are all that's needed to
 deploy this as a [Hugging Face Space](https://huggingface.co/docs/hub/spaces).
-Deploying there requires adding a Space-specific `README.md` with YAML
-front matter (`sdk: gradio`, etc.) per the
-[Spaces config reference](https://huggingface.co/docs/hub/spaces-config-reference) —
-that step is left for when you actually deploy, so it doesn't collide
-with this repository's own README.
+See [`deploy/README.md`](deploy/README.md) for step-by-step instructions
+and the Space-specific `README.md` front matter — kept separate from
+this file so the two don't collide.
+
+## About the Author
+
+**Motaz Alqaoud, PhD**
+PhD in Biomedical Engineering with a focus on medical image analysis and deep learning.
+Senior AI/ML Engineer specializing in medical imaging, RAG systems, and clinical AI.
+
+- GitHub: [@motazalqaoud](https://github.com/motazalqaoud)
+- LinkedIn: [linkedin.com/in/motazalqaoud](https://linkedin.com/in/motazalqaoud)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT License — use freely, attribution appreciated. Open an issue for
+questions and collaboration.
