@@ -12,8 +12,8 @@ pip install -r requirements-dev.txt
 
 ```bash
 pytest -q --cov=src
-ruff check src tests app.py
-black --check src tests app.py
+ruff check src tests app.py scripts
+black --check src tests app.py scripts
 ```
 
 The test suite runs fully offline — no Hugging Face model downloads are
