@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Push to Hugging Face Space
         env:
@@ -24,4 +26,4 @@ jobs:
           cp deploy/space_README.md README.md
           git add README.md
           git commit -m "Sync from GitHub with Space front matter" || echo "No changes to commit"
-          git push "https://user:${HF_TOKEN}@huggingface.co/spaces/motazalqaoud/clinical-knowledge-agent" HEAD:main --force
+          git push "https://motazalqaoud:${HF_TOKEN}@huggingface.co/spaces/motazalqaoud/clinical-knowledge-agent" HEAD:main --force
