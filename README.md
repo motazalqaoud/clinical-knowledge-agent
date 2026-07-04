@@ -19,40 +19,38 @@ Key capabilities:
 - **Lightweight evaluation harness** (`scripts/evaluate.py`) — scripted retrieval/groundedness checks against the sample document, not just unit tests
 - **Fully offline test suite** — model-dependent components are dependency-injected, so `pytest` never touches the network
 
-**Author:** Motaz Alqaoud, PhD — Biomedical Engineer, Senior AI/ML Engineer.
-Part of the [Precision Oncology AI Platform](https://github.com/motazalqaoud/precision-oncology-ai-platform)
-(a 9-module portfolio) — see that repo for how this module connects to the others.
+
 
 ## Architecture
 
 ```
                  ┌─────────────────────┐
  .txt/.md/.pdf → │  document_loader.py │
-                 └──────────┬───────────┘
+                 └──────────┬──────────┘
                             ▼
                  ┌─────────────────────┐
                  │     chunker.py      │  medical-aware chunking
                  │ (protects dosages,  │  (never splits protected
                  │  lab values, freq.  │   phrases across chunks)
                  │  abbreviations)     │
-                 └──────────┬───────────┘
+                 └──────────┬──────────┘
                             ▼
                  ┌─────────────────────┐
                  │    embedder.py      │  sentence-transformers/
                  │                     │  all-MiniLM-L6-v2 (local)
-                 └──────────┬───────────┘
+                 └──────────┬──────────┘
                             ▼
                  ┌─────────────────────┐
                  │  vector_store.py    │  FAISS IndexFlatIP
                  │  (data/faiss_index) │  (100% local, no cloud)
-                 └──────────┬───────────┘
-                            ▼      ┌─────────────────────┐
-                 query ──────────▶ │    rag_chain.py     │
-                                    │ retrieve → grounded  │
-                                    │ prompt → generate    │
-                                    │ (Qwen2.5-1.5B-Instruct)│
-                                    └──────────┬───────────┘
-                                               ▼
+                 └──────────┬──────────┘
+                            ▼       ┌─────────────────────────┐
+                 query ──────────▶ │        rag_chain.py      │
+                                    │    retrieve → grounded  │
+                                    │    prompt → generate    │
+                                    │ (Qwen2.5-1.5B-Instruct) │
+                                    └────────────┬────────────┘
+                                                 ▼
                                     answer + sources + disclaimer
                                     (or explicit "insufficient
                                      information" if ungrounded)
