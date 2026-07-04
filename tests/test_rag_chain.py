@@ -1,7 +1,21 @@
-from src.generation.rag_chain import RAGChain
+import src.generation.rag_chain as rag_chain_module
+from src.generation.rag_chain import RAGChain, _Seq2SeqGenerator
 from src.retrieval.vector_store import FAISSVectorStore
 from src.utils.clinical_prompts import DISCLAIMER, INSUFFICIENT_INFO_MESSAGE
 from tests.conftest import FakeGenerator
+
+
+class _FakeSeq2SeqTokenizer:
+    def __call__(self, prompt, return_tensors=None, truncation=None):
+        return {"input_ids": [[1, 2, 3]]}
+
+    def decode(self, output_ids, skip_special_tokens=True):
+        return "decoded answer"
+
+
+class _FakeSeq2SeqModel:
+    def generate(self, max_new_tokens=None, **kwargs):
+        return [[4, 5, 6]]
 
 
 def _seeded_store(fake_embedder, text: str, source: str = "note.txt", page: int = 1):
@@ -72,3 +86,27 @@ def test_disclaimer_not_duplicated_if_generator_already_included_it(fake_embedde
     response = chain.query(text)
 
     assert response.answer.count(DISCLAIMER) == 1
+
+
+def test_seq2seq_generator_matches_pipeline_output_contract():
+    generator = _Seq2SeqGenerator.__new__(_Seq2SeqGenerator)
+    generator._tokenizer = _FakeSeq2SeqTokenizer()
+    generator._model = _FakeSeq2SeqModel()
+
+    result = generator("some grounded prompt", max_new_tokens=10)
+
+    assert result == [{"generated_text": "decoded answer"}]
+
+
+def test_ensure_generator_builds_seq2seq_generator_without_network(
+    monkeypatch, fake_embedder
+):
+    monkeypatch.setattr(
+        rag_chain_module, "_Seq2SeqGenerator", lambda model_name: FakeGenerator("stub")
+    )
+    store = FAISSVectorStore(dim=32)
+    chain = RAGChain(fake_embedder, store)
+
+    generator = chain._ensure_generator()
+
+    assert generator.response == "stub"
