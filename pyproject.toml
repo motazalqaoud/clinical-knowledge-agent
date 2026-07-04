@@ -1,5 +1,5 @@
 [project]
-name = "clinical-knowledge-agent"
+name = "clinical-rag-assistant"
 version = "0.1.0"
 description = "RAG system for querying clinical documents with grounded, cited, zero-hallucination answers."
 readme = "README.md"

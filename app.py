@@ -1,4 +1,4 @@
-"""Gradio UI for the Clinical Knowledge Agent.
+"""Gradio UI for the Clinical RAG Assistant.
 
 Deployable as-is to Hugging Face Spaces: this file plus requirements.txt
 at the repo root is all Spaces needs to run it. A Spaces-specific
@@ -173,9 +173,9 @@ def handle_query(question: str, history: list[dict]) -> tuple[list[dict], str]:
     return history, ""
 
 
-with gr.Blocks(title="Clinical Knowledge Agent") as demo:
+with gr.Blocks(title="Clinical RAG Assistant") as demo:
     gr.Markdown(
-        "# Clinical Knowledge Agent\n"
+        "# Clinical RAG Assistant\n"
         "Ask questions about ingested clinical documents. Answers are "
         "grounded strictly in retrieved context, cite their sources, and "
         "always end with a disclaimer to consult a licensed healthcare "
@@ -201,7 +201,7 @@ with gr.Blocks(title="Clinical Knowledge Agent") as demo:
 
         with gr.Column(scale=2):
             gr.Markdown("### 2. Ask a question")
-            chatbot = gr.Chatbot(label="Clinical Knowledge Agent")
+            chatbot = gr.Chatbot(label="Clinical RAG Assistant")
             question_box = gr.Textbox(
                 label="Question", placeholder="e.g. What is the target HbA1c?"
             )

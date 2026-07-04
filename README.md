@@ -1,6 +1,6 @@
-# Clinical Knowledge Agent
+# Clinical RAG Assistant
 
-[![CI](https://github.com/motazalqaoud/clinical-knowledge-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/motazalqaoud/clinical-knowledge-agent/actions/workflows/ci.yml)
+[![CI](https://github.com/motazalqaoud/Clinical-RAG-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/motazalqaoud/Clinical-RAG-Assistant/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
@@ -65,7 +65,7 @@ chunking guard and the grounding/insufficient-information logic.
 ## Repository structure
 
 ```
-clinical-knowledge-agent/
+Clinical-RAG-Assistant/
 ├── src/
 │   ├── ingestion/      document_loader.py, chunker.py
 │   ├── embeddings/     embedder.py

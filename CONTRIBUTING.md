@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving the Clinical Knowledge Agent.
+Thanks for your interest in improving the Clinical RAG Assistant.
 
 ## Setup
 

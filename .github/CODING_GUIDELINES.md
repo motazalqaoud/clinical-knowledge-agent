@@ -1,6 +1,6 @@
 # Coding Guidelines - Motaz Alqaoud
 
-## Project: Clinical Knowledge Agent - RAG system for clinical documents
+## Project: Clinical RAG Assistant - RAG system for clinical documents
 
 ## About
 Healthcare AI project by Motaz Alqaoud, PhD - Senior AI/ML Engineer.
