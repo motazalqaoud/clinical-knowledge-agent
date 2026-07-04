@@ -34,9 +34,11 @@ class FakeGenerator:
     def __init__(self, response: str):
         self.response = response
         self.call_count = 0
+        self.last_prompt = None
 
     def __call__(self, prompt, **kwargs):
         self.call_count += 1
+        self.last_prompt = prompt
         return [{"generated_text": self.response}]
 
 

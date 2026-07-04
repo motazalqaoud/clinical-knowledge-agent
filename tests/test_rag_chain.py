@@ -1,6 +1,8 @@
+import numpy as np
+
 import src.generation.rag_chain as rag_chain_module
 from src.generation.rag_chain import RAGChain, _Seq2SeqGenerator
-from src.retrieval.vector_store import FAISSVectorStore
+from src.retrieval.vector_store import FAISSVectorStore, SearchResult
 from src.utils.clinical_prompts import DISCLAIMER, INSUFFICIENT_INFO_MESSAGE
 from tests.conftest import FakeGenerator
 
@@ -86,6 +88,79 @@ def test_disclaimer_not_duplicated_if_generator_already_included_it(fake_embedde
     response = chain.query(text)
 
     assert response.answer.count(DISCLAIMER) == 1
+
+
+def test_prompt_places_question_before_context(fake_embedder):
+    text = "Continue Metformin 500mg BID for glycemic control."
+    store = _seeded_store(fake_embedder, text)
+    generator = FakeGenerator("The dose is 500mg BID.")
+    chain = RAGChain(fake_embedder, store, generator=generator, score_threshold=0.35)
+
+    chain.query(text)
+
+    prompt = generator.last_prompt
+    assert prompt.index("QUESTION:") < prompt.index("CONTEXT:")
+
+
+def test_select_within_budget_keeps_first_chunk_even_if_oversized(fake_embedder):
+    store = FAISSVectorStore(dim=32)
+    chain = RAGChain(fake_embedder, store, max_context_chars=50)
+    results = [
+        SearchResult(text="a" * 40, source="s.txt", page=1, score=0.9),
+        SearchResult(text="b" * 40, source="s.txt", page=1, score=0.8),
+        SearchResult(text="c" * 40, source="s.txt", page=1, score=0.7),
+    ]
+
+    selected = chain._select_within_budget(results)
+
+    assert len(selected) == 1
+    assert selected[0].text == "a" * 40
+
+
+def test_select_within_budget_includes_multiple_chunks_that_fit(fake_embedder):
+    store = FAISSVectorStore(dim=32)
+    chain = RAGChain(fake_embedder, store, max_context_chars=100)
+    results = [
+        SearchResult(text="a" * 40, source="s.txt", page=1, score=0.9),
+        SearchResult(text="b" * 40, source="s.txt", page=1, score=0.8),
+        SearchResult(text="c" * 40, source="s.txt", page=1, score=0.7),
+    ]
+
+    selected = chain._select_within_budget(results)
+
+    assert [r.text for r in selected] == ["a" * 40, "b" * 40]
+
+
+def test_query_sources_match_budget_limited_context(fake_embedder):
+    query_text = "What is the dose?"
+    query_vec = fake_embedder.encode_query(query_text)
+    store = FAISSVectorStore(dim=32)
+    # Both chunks placed at the query's own bucket so both retrieve with
+    # identical high scores, regardless of their own text's hash.
+    embeddings = np.array([query_vec, query_vec])
+    store.add(
+        embeddings, texts=["a" * 40, "b" * 40], sources=["s.txt", "s.txt"], pages=[1, 2]
+    )
+    generator = FakeGenerator("some answer")
+    chain = RAGChain(
+        fake_embedder,
+        store,
+        generator=generator,
+        score_threshold=0.35,
+        max_context_chars=50,
+        top_k=2,
+    )
+
+    response = chain.query(query_text)
+
+    # FAISS doesn't guarantee ordering between exactly-tied scores, so only
+    # assert that exactly one of the two chunks made it in, not which one.
+    assert len(response.sources) == 1
+    included, excluded = ("a" * 40, "b" * 40)
+    if included not in generator.last_prompt:
+        included, excluded = excluded, included
+    assert included in generator.last_prompt
+    assert excluded not in generator.last_prompt
 
 
 def test_seq2seq_generator_matches_pipeline_output_contract():
