@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions - Motaz Alqaoud
+# Coding Guidelines - Motaz Alqaoud
 
 ## Project: Clinical Knowledge Agent - RAG system for clinical documents
 
