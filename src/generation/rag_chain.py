@@ -23,6 +23,31 @@ from src.utils.clinical_prompts import (
 DEFAULT_GENERATION_MODEL_NAME = "google/flan-t5-large"
 
 
+class _Seq2SeqGenerator:
+    """Adapts a seq2seq model + tokenizer to a pipeline-style callable.
+
+    Clinical note: newer `transformers` releases dropped the
+    `text2text-generation` pipeline task (and `Text2TextGenerationPipeline`
+    entirely), which seq2seq models like flan-t5 need. This drives
+    `AutoModelForSeq2SeqLM` directly instead, exposing the same
+    ``callable(prompt, **kw) -> [{"generated_text": str}]`` contract so
+    the rest of RAGChain (and its tests) don't need to know the
+    difference.
+    """
+
+    def __init__(self, model_name: str) -> None:
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+        self._tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self._model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    def __call__(self, prompt: str, max_new_tokens: int = 256, **kwargs: Any):
+        inputs = self._tokenizer(prompt, return_tensors="pt", truncation=True)
+        output_ids = self._model.generate(**inputs, max_new_tokens=max_new_tokens)
+        text = self._tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        return [{"generated_text": text}]
+
+
 @dataclass
 class RAGResponse:
     """The result of a RAGChain query.
@@ -58,10 +83,10 @@ class RAGChain:
             embedder: Embedder used to encode the incoming question.
             vector_store: Store to retrieve candidate passages from.
             generator: An already-constructed generator (real
-                `transformers.pipeline("text2text-generation", ...)` or a
-                test double) callable as ``generator(prompt, **kw) ->
-                [{"generated_text": str}]``. If None, the real pipeline is
-                lazily constructed from `model_name` on first use.
+                `_Seq2SeqGenerator` or a test double) callable as
+                ``generator(prompt, **kw) -> [{"generated_text": str}]``.
+                If None, the real seq2seq model is lazily constructed
+                from `model_name` on first use.
             model_name: HuggingFace model name for the real generator,
                 used only if `generator` is not provided.
             score_threshold: Minimum best-match similarity score required
@@ -79,9 +104,7 @@ class RAGChain:
 
     def _ensure_generator(self) -> Any:
         if self._generator is None:
-            from transformers import pipeline
-
-            self._generator = pipeline("text2text-generation", model=self._model_name)
+            self._generator = _Seq2SeqGenerator(self._model_name)
         return self._generator
 
     def query(self, question: str) -> RAGResponse:

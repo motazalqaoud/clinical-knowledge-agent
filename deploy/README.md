@@ -17,7 +17,7 @@ README, a Space needs one with `sdk: gradio` front matter at the very top.
 3. From your local clone of this repo:
    ```bash
    git remote add space https://huggingface.co/spaces/<your-username>/<space-name>
-   git push space claude/ai-prompt-review-6k8n40:main
+   git push space main:main
    ```
    You'll be prompted for your Hugging Face username and an access token
    (create one at https://huggingface.co/settings/tokens if you don't have
@@ -29,7 +29,7 @@ README, a Space needs one with `sdk: gradio` front matter at the very top.
    cp deploy/space_README.md README.md
    git add README.md
    git commit -m "Add Space front matter for Hugging Face deployment"
-   git push space claude/ai-prompt-review-6k8n40:main
+   git push space main:main
    ```
    Do this on a throwaway local copy or a dedicated deploy branch — don't
    overwrite the GitHub-facing `README.md` on your main branch.
