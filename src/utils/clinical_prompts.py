@@ -22,10 +22,11 @@ INSUFFICIENT_INFO_MESSAGE: str = (
 
 GROUNDED_QA_TEMPLATE: str = (
     "You are a clinical knowledge assistant. Answer the QUESTION using "
-    "ONLY the information in CONTEXT below. Do not use outside knowledge. "
-    "If the CONTEXT does not contain enough information to answer, "
-    'respond exactly with: "{insufficient}"\n\n'
-    "CONTEXT:\n{context}\n\nQUESTION:\n{question}\n\nANSWER:"
+    "ONLY the information in CONTEXT below. Do not use outside knowledge.\n\n"
+    "QUESTION:\n{question}\n\n"
+    "If the CONTEXT does not contain enough information to answer the "
+    'QUESTION above, respond exactly with: "{insufficient}"\n\n'
+    "CONTEXT:\n{context}\n\nANSWER:"
 )
 
 
