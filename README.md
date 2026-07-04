@@ -19,8 +19,6 @@ Key capabilities:
 - **Lightweight evaluation harness** (`scripts/evaluate.py`) — scripted retrieval/groundedness checks against the sample document, not just unit tests
 - **Fully offline test suite** — model-dependent components are dependency-injected, so `pytest` never touches the network
 
-
-
 ## Architecture
 
 ```
@@ -155,6 +153,35 @@ a real accuracy benchmark would need a much larger, clinician-reviewed
 question set well beyond what a single synthetic sample document can
 support.
 
+### Measured results
+
+Real run against `Qwen/Qwen2.5-1.5B-Instruct` + `all-MiniLM-L6-v2`
+(`python scripts/evaluate.py`, no `--fake`):
+
+| Metric | Result |
+|---|---|
+| Groundedness accuracy | 5/6 |
+| Expected-keyword presence | 3/4 |
+
+| Question | Expected | Actual | Result |
+|---|---|---|---|
+| What is the target HbA1c for most adults with type 2 diabetes? | Grounded | Grounded | PASS |
+| What is the typical starting dose of Metformin? | Grounded | Grounded | PASS |
+| What is a common starting dose for basal insulin? | Grounded | Grounded | PASS |
+| How often should blood glucose be checked during insulin titration? | Grounded | Grounded | PASS |
+| What is the capital of France? | Insufficient | Insufficient | PASS |
+| What is the recommended surgical approach for a torn ACL? | Insufficient | **Grounded** | FAIL |
+
+The one failure is instructive, not swept under the rug: the ACL
+question retrieved a passage from the diabetes guideline whose cosine
+similarity landed just above the 0.35 `score_threshold` — general
+clinical vocabulary overlap (dosing, monitoring language) can push a
+topically-unrelated question over a fixed similarity cutoff even
+though the retrieved passage doesn't actually answer it. `score_threshold`
+is a heuristic, not a guarantee; a production deployment would want a
+larger, domain-matched corpus and a threshold validated against real
+query traffic, not a single synthetic document.
+
 ## Clinical Context
 
 Most RAG tutorials miss the clinical reality. Here's what's different
@@ -211,6 +238,11 @@ black --check src tests app.py scripts
 - **Local-only by design**, which supports HIPAA-friendly deployments,
   but this repository itself has not undergone a compliance review —
   treat it as a reference implementation, not a certified product.
+- **The retrieval score threshold is a heuristic, not a guarantee.**
+  Measured evaluation (see above) found an out-of-scope question can
+  still retrieve a passage scoring just above `score_threshold` on
+  vocabulary overlap alone, producing a grounded-looking answer that
+  isn't actually supported by the retrieved content.
 
 ## Deployment
 
@@ -222,7 +254,7 @@ this file so the two don't collide.
 
 ## About the Author
 
-**Motaz Alqaoud,**
+**Motaz Alqaoud, PhD**
 PhD in Biomedical Engineering with a focus on medical image analysis and deep learning.
 Senior AI/ML Engineer specializing in medical imaging, RAG systems, and clinical AI.
 
