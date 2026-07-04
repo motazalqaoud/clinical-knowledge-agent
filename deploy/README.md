@@ -5,8 +5,33 @@ YAML front matter Spaces require. It's kept separate from the repo's main
 `README.md` so the two don't collide — this repo needs a GitHub-style
 README, a Space needs one with `sdk: gradio` front matter at the very top.
 
-## Steps (run these yourself — this requires your own Hugging Face login
-## and network access, which this build environment does not have)
+## Option A: automatic sync (recommended once set up)
+
+`.github/workflows/sync-to-huggingface.yml` pushes this repo to your
+Space automatically on every push to `main` — no more manual
+copy-paste. It needs one one-time manual step from you (this requires
+your Hugging Face account, which I can't access):
+
+1. Create a Hugging Face access token with **write** permission at
+   https://huggingface.co/settings/tokens.
+2. On GitHub, go to this repo's **Settings → Secrets and variables →
+   Actions → New repository secret**.
+3. Name it `HF_TOKEN`, paste the token as the value, save.
+
+That's it — every push to `main` now syncs to
+`https://huggingface.co/spaces/motazalqaoud/clinical-knowledge-agent`
+automatically, swapping in this folder's `space_README.md` as the
+Space's front matter. If the secret isn't set, the workflow just skips
+the sync step (it won't fail your other CI checks).
+
+You can also trigger it manually anytime from the **Actions** tab →
+**Sync to Hugging Face Space** → **Run workflow**, without waiting for
+a push.
+
+## Option B: manual (steps below — no GitHub secret needed)
+
+Run these yourself — this requires your own Hugging Face login and
+network access, which this build environment does not have.
 
 1. On huggingface.co, click your profile icon → **New Space**.
    - SDK: **Gradio**
