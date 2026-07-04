@@ -67,20 +67,52 @@ chunking guard and the grounding/insufficient-information logic.
 ```
 Clinical-RAG-Assistant/
 ├── src/
-│   ├── ingestion/      document_loader.py, chunker.py
-│   ├── embeddings/     embedder.py
-│   ├── retrieval/      vector_store.py
-│   ├── generation/     rag_chain.py
-│   └── utils/          clinical_prompts.py
+│   ├── ingestion/
+│   │   ├── document_loader.py     # Loads .txt/.md/.pdf into LoadedDocument objects
+│   │   └── chunker.py             # Medical-aware chunking (never splits dosages, lab values, freq. abbreviations)
+│   ├── embeddings/
+│   │   └── embedder.py            # ClinicalEmbedder — sentence-transformers/all-MiniLM-L6-v2
+│   ├── retrieval/
+│   │   └── vector_store.py        # FAISSVectorStore — IndexFlatIP, cosine similarity search
+│   ├── generation/
+│   │   └── rag_chain.py           # RAGChain: retrieve -> grounded prompt -> generate -> disclaimer
+│   └── utils/
+│       └── clinical_prompts.py    # Prompt templates, disclaimer, insufficient-info detection
+│
 ├── scripts/
-│   └── evaluate.py     retrieval/groundedness evaluation harness
-├── app.py              Gradio UI
-├── examples/           synthetic sample clinical documents
-├── tests/              pytest suite (fully offline — no model downloads)
-├── notebooks/          demo walkthrough notebook
-├── docs/               architecture notes
-├── deploy/             Hugging Face Space deployment files
-└── data/               local FAISS index + uploads (gitignored)
+│   └── evaluate.py                # Retrieval/groundedness evaluation harness (10 questions, 2 docs)
+│
+├── tests/                         # pytest suite — fully offline, no model downloads
+│   ├── conftest.py                # Fake embedder/generator fixtures used across the suite
+│   ├── fixtures/
+│   │   └── pdf_factory.py         # Generates synthetic PDFs on the fly for loader tests
+│   ├── test_document_loader.py    # .txt/.md/.pdf loading, error handling
+│   ├── test_chunker.py            # Core deliverable — protected-pattern edge cases
+│   ├── test_clinical_prompts.py   # Prompt building, disclaimer idempotency
+│   ├── test_embedder.py           # Injected-fake embedding shape/normalization checks
+│   ├── test_vector_store.py       # Add/search/save/load round trips
+│   ├── test_rag_chain.py          # Groundedness short-circuit, disclaimer, sources
+│   └── test_evaluate.py           # Evaluation harness sanity checks
+│
+├── examples/
+│   └── sample_docs/               # Synthetic clinical guidelines (diabetes, hypertension)
+│
+├── notebooks/
+│   └── 01_demo_walkthrough.ipynb  # Real-model end-to-end demo (requires network access)
+│
+├── docs/
+│   └── architecture.md            # Chunking-guard and grounding/insufficient-info design rationale
+│
+├── deploy/
+│   ├── README.md                  # Hugging Face Space setup (HF_TOKEN, auto-sync workflow)
+│   └── space_README.md            # Space-specific README front matter (title, sdk, emoji)
+│
+├── data/                          # local FAISS index + uploads (gitignored, never committed)
+│
+├── app.py                         # Gradio UI — upload, ingest, chat, example questions
+├── pyproject.toml                 # Package metadata + black/ruff/pytest config
+├── requirements.txt               # Runtime dependencies
+└── requirements-dev.txt           # Dev/test dependencies (pytest, ruff, black)
 ```
 
 ## Quickstart
