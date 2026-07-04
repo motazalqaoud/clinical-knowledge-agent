@@ -82,3 +82,23 @@ def test_len_reflects_stored_count():
         np.array([_unit([1, 0, 0, 0])]), texts=["a"], sources=["a.txt"], pages=[1]
     )
     assert len(store) == 1
+
+
+def test_sources_returns_distinct_filenames():
+    store = FAISSVectorStore(dim=4)
+    assert store.sources == set()
+
+    store.add(
+        np.array([_unit([1, 0, 0, 0]), _unit([0, 1, 0, 0])]),
+        texts=["chunk one", "chunk two"],
+        sources=["a.txt", "a.txt"],
+        pages=[1, 2],
+    )
+    store.add(
+        np.array([_unit([0, 0, 1, 0])]),
+        texts=["chunk three"],
+        sources=["b.txt"],
+        pages=[1],
+    )
+
+    assert store.sources == {"a.txt", "b.txt"}

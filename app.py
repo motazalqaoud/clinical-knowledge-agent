@@ -41,6 +41,7 @@ def _load_existing_store() -> FAISSVectorStore | None:
 
 
 _vector_store = _load_existing_store()
+_ingested_sources: set[str] = set(_vector_store.sources) if _vector_store else set()
 
 
 def _get_rag_chain() -> RAGChain:
@@ -63,11 +64,22 @@ def ingest_paths(paths: list[str]) -> str:
 
     Returns:
         A human-readable status message for display in the UI.
+
+    Clinical note: filenames already present in the index are skipped
+    rather than re-added, so repeated clicks (e.g. "Load sample
+    documents" clicked more than once in the same running session) can
+    never silently duplicate chunks and skew retrieval scores.
     """
     global _vector_store, _rag_chain
     try:
+        new_paths = [p for p in paths if Path(p).name not in _ingested_sources]
+        skipped = [Path(p).name for p in paths if Path(p).name in _ingested_sources]
+
+        if not new_paths:
+            return f"Already ingested, skipped duplicate(s): {', '.join(skipped)}."
+
         docs = []
-        for file_path in paths:
+        for file_path in new_paths:
             docs.extend(load_document(file_path))
         chunks = chunk_documents(docs)
         if not chunks:
@@ -84,7 +96,12 @@ def ingest_paths(paths: list[str]) -> str:
         store.save(DEFAULT_INDEX_DIR)
         _vector_store = store
         _rag_chain = None  # rebuild next query against the updated store
-        return f"Ingested {len(chunks)} chunks from {len(paths)} file(s)."
+        _ingested_sources.update(Path(p).name for p in new_paths)
+
+        message = f"Ingested {len(chunks)} chunks from {len(new_paths)} file(s)."
+        if skipped:
+            message += f" Skipped already-ingested duplicate(s): {', '.join(skipped)}."
+        return message
     except Exception as exc:
         logger.exception("Ingestion failed")
         return f"Ingestion failed: {exc}"
