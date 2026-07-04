@@ -26,10 +26,10 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check src tests app.py
+        run: ruff check src tests app.py scripts
 
       - name: Format check (black)
-        run: black --check src tests app.py
+        run: black --check src tests app.py scripts
 
       - name: Test
         run: pytest -q --cov=src --cov-report=term-missing
