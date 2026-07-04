@@ -28,8 +28,8 @@ class FakeSentenceTransformer:
 
 
 class FakeGenerator:
-    """Callable fake matching the transformers text2text-generation pipeline
-    output contract: __call__(prompt, **kw) -> [{"generated_text": str}]."""
+    """Callable fake matching RAGChain's generator contract:
+    __call__(prompt, **kw) -> [{"generated_text": str}]."""
 
     def __init__(self, response: str):
         self.response = response

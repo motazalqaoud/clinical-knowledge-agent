@@ -51,7 +51,7 @@ fabricating one.
                  query ──────────▶ │    rag_chain.py     │
                                     │ retrieve → grounded  │
                                     │ prompt → generate    │
-                                    │ (google/flan-t5-large)│
+                                    │ (Qwen2.5-1.5B-Instruct)│
                                     └──────────┬───────────┘
                                                ▼
                                     answer + sources + disclaimer
@@ -104,8 +104,8 @@ the bundled synthetic guideline, then ask a question such as *"What is
 the target HbA1c?"*.
 
 The first run downloads `sentence-transformers/all-MiniLM-L6-v2` and
-`google/flan-t5-large` from Hugging Face — this requires network access
-to `huggingface.co`. After that, everything runs locally and offline.
+`Qwen/Qwen2.5-1.5B-Instruct` from Hugging Face — this requires network
+access to `huggingface.co`. After that, everything runs locally and offline.
 
 ## Example
 
