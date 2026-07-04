@@ -253,9 +253,12 @@ black --check src tests app.py scripts
 
 `app.py` + `requirements.txt` at the repo root are all that's needed to
 deploy this as a [Hugging Face Space](https://huggingface.co/docs/hub/spaces).
-See [`deploy/README.md`](deploy/README.md) for step-by-step instructions
-and the Space-specific `README.md` front matter — kept separate from
-this file so the two don't collide.
+A GitHub Actions workflow (`.github/workflows/sync-to-huggingface.yml`)
+can push every commit on `main` to the Space automatically once an
+`HF_TOKEN` secret is configured — see [`deploy/README.md`](deploy/README.md)
+for that one-time setup step, the manual alternative, and the
+Space-specific `README.md` front matter (kept separate from this file
+so the two don't collide).
 
 ## About the Author
 
