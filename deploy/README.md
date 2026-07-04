@@ -34,6 +34,6 @@ README, a Space needs one with `sdk: gradio` front matter at the very top.
    Do this on a throwaway local copy or a dedicated deploy branch — don't
    overwrite the GitHub-facing `README.md` on your main branch.
 5. The Space builds automatically, installs `requirements.txt`, and
-   downloads `all-MiniLM-L6-v2` and `flan-t5-large` from the Hub itself
+   downloads `all-MiniLM-L6-v2` and `Qwen2.5-1.5B-Instruct` from the Hub itself
    the first time you click "Ingest" / ask a question — no local download
    needed.

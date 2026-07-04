@@ -20,32 +20,37 @@ from src.utils.clinical_prompts import (
     is_insufficient,
 )
 
-DEFAULT_GENERATION_MODEL_NAME = "google/flan-t5-large"
+DEFAULT_GENERATION_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 
 
-class _Seq2SeqGenerator:
-    """Adapts a seq2seq model + tokenizer to a pipeline-style callable.
+class _CausalLMGenerator:
+    """Adapts an instruction-tuned causal LM to a pipeline-style callable.
 
-    Clinical note: newer `transformers` releases dropped the
-    `text2text-generation` pipeline task (and `Text2TextGenerationPipeline`
-    entirely), which seq2seq models like flan-t5 need. This drives
-    `AutoModelForSeq2SeqLM` directly instead, exposing the same
-    ``callable(prompt, **kw) -> [{"generated_text": str}]`` contract so
-    the rest of RAGChain (and its tests) don't need to know the
-    difference.
+    Clinical note: flan-t5-large (an encoder-decoder seq2seq model)
+    proved unreliable at following the strict grounded-QA instruction —
+    it frequently defaulted to the insufficient-information fallback
+    even when the retrieved context clearly answered the question.
+    Modern small instruction-tuned causal LMs follow this style of
+    prompt far more reliably, and this also uses the standard, still
+    fully-supported `text-generation` pipeline task rather than a manual
+    workaround. The prompt is wrapped as a single user turn so the
+    model's chat template is applied, since instruct models are tuned
+    for chat-formatted input rather than raw text completion.
     """
 
     def __init__(self, model_name: str) -> None:
-        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+        from transformers import pipeline
 
-        self._tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self._model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        self._pipe = pipeline("text-generation", model=model_name)
 
     def __call__(self, prompt: str, max_new_tokens: int = 256, **kwargs: Any):
-        inputs = self._tokenizer(prompt, return_tensors="pt", truncation=True)
-        output_ids = self._model.generate(**inputs, max_new_tokens=max_new_tokens)
-        text = self._tokenizer.decode(output_ids[0], skip_special_tokens=True)
-        return [{"generated_text": text}]
+        messages = [{"role": "user", "content": prompt}]
+        outputs = self._pipe(
+            messages, max_new_tokens=max_new_tokens, do_sample=False, **kwargs
+        )
+        conversation = outputs[0]["generated_text"]
+        reply = conversation[-1]["content"]
+        return [{"generated_text": reply}]
 
 
 @dataclass
@@ -84,10 +89,10 @@ class RAGChain:
             embedder: Embedder used to encode the incoming question.
             vector_store: Store to retrieve candidate passages from.
             generator: An already-constructed generator (real
-                `_Seq2SeqGenerator` or a test double) callable as
+                `_CausalLMGenerator` or a test double) callable as
                 ``generator(prompt, **kw) -> [{"generated_text": str}]``.
-                If None, the real seq2seq model is lazily constructed
-                from `model_name` on first use.
+                If None, the real causal LM is lazily constructed from
+                `model_name` on first use.
             model_name: HuggingFace model name for the real generator,
                 used only if `generator` is not provided.
             score_threshold: Minimum best-match similarity score required
@@ -114,7 +119,7 @@ class RAGChain:
 
     def _ensure_generator(self) -> Any:
         if self._generator is None:
-            self._generator = _Seq2SeqGenerator(self._model_name)
+            self._generator = _CausalLMGenerator(self._model_name)
         return self._generator
 
     def _select_within_budget(self, results: list[SearchResult]) -> list[SearchResult]:
