@@ -1,6 +1,7 @@
 import re
 
 from src.ingestion.chunker import (
+    BLOOD_PRESSURE_PATTERN,
     DOSAGE_PATTERN,
     FREQUENCY_PATTERN,
     LAB_VALUE_PATTERN,
@@ -62,6 +63,21 @@ def test_lab_value_decimal_point_not_treated_as_sentence_end():
 
     assert len(chunks) == 1
     assert "HbA1c < 7.0%" in chunks[0].text
+
+
+def test_blood_pressure_reading_never_split():
+    text = (
+        FILLER * 4
+        + "Target blood pressure < 130/80 mmHg for most hypertensive adults. "
+        + FILLER * 4
+    )
+    doc = LoadedDocument(text=text, source="note.txt", page=1)
+    config = ChunkerConfig(target_chunk_size=60, overlap=10, min_chunk_size=20)
+
+    chunks = chunk_document(doc, config)
+
+    assert len(chunks) > 1
+    _assert_pattern_never_split(chunks, text, BLOOD_PRESSURE_PATTERN)
 
 
 def test_frequency_abbreviation_never_split():
