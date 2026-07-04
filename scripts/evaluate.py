@@ -2,7 +2,7 @@
 
 Clinical note: this measures whether the pipeline retrieves the right
 passage and correctly grounds (or correctly declines to answer) a fixed
-set of questions against the bundled synthetic sample document — it is
+set of questions against the bundled synthetic sample documents — it is
 not a substitute for clinician-reviewed validation on real clinical
 corpora, which is out of scope for a portfolio project.
 
@@ -25,10 +25,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.embeddings.embedder import ClinicalEmbedder  # noqa: E402
 from src.generation.rag_chain import RAGChain  # noqa: E402
 from src.ingestion.chunker import chunk_documents  # noqa: E402
-from src.ingestion.document_loader import load_document  # noqa: E402
+from src.ingestion.document_loader import load_directory  # noqa: E402
 from src.retrieval.vector_store import FAISSVectorStore  # noqa: E402
 
-SAMPLE_DOC = "examples/sample_docs/diabetes_management_guideline.md"
+SAMPLE_DOCS_DIR = "examples/sample_docs"
 
 
 @dataclass
@@ -49,6 +49,7 @@ class EvalCase:
 
 
 EVAL_CASES: list[EvalCase] = [
+    # diabetes_management_guideline.md
     EvalCase(
         "What is the target HbA1c for most adults with type 2 diabetes?",
         expect_grounded=True,
@@ -69,6 +70,28 @@ EVAL_CASES: list[EvalCase] = [
         expect_grounded=True,
         expected_keywords=("QID",),
     ),
+    # hypertension_management_guideline.md
+    EvalCase(
+        "What is the target blood pressure for most adults with hypertension?",
+        expect_grounded=True,
+        expected_keywords=("130/80",),
+    ),
+    EvalCase(
+        "What is the typical starting dose of Lisinopril?",
+        expect_grounded=True,
+        expected_keywords=("10mg", "QD"),
+    ),
+    EvalCase(
+        "How often should home blood pressure be monitored when starting therapy?",
+        expect_grounded=True,
+        expected_keywords=("BID",),
+    ),
+    EvalCase(
+        "What blood pressure reading defines a hypertensive urgency?",
+        expect_grounded=True,
+        expected_keywords=("180/120",),
+    ),
+    # out-of-scope
     EvalCase(
         "What is the capital of France?",
         expect_grounded=False,
@@ -138,7 +161,7 @@ def print_report(results: list[dict]) -> None:
 
 
 def _build_chain(use_fake: bool) -> RAGChain:
-    docs = load_document(SAMPLE_DOC)
+    docs = load_directory(SAMPLE_DOCS_DIR)
     chunks = chunk_documents(docs)
 
     if use_fake:

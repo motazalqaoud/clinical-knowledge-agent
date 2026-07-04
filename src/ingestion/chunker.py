@@ -1,11 +1,13 @@
-"""Medical-aware chunking that never splits dosages, lab values, or dosing
-frequency abbreviations across chunk boundaries.
+"""Medical-aware chunking that never splits dosages, lab values, blood
+pressure readings, or dosing frequency abbreviations across chunk
+boundaries.
 
 Clinical note: chunk-boundary placement is driven by sentence structure
 first and protected-phrase guards second. The core invariant enforced
 throughout this module is: size limits are soft, protected-phrase
 integrity is hard — a chunk is allowed to exceed its target size before
-a dosage, lab value, or frequency abbreviation is ever torn in two.
+a dosage, lab value, blood pressure reading, or frequency abbreviation
+is ever torn in two.
 """
 
 from __future__ import annotations
@@ -19,11 +21,13 @@ DOSAGE_PATTERN = re.compile(
     r"\d+(\.\d+)?\s*(mg|mcg|g|mL|ml|IU|units?)\b", re.IGNORECASE
 )
 LAB_VALUE_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9]*\s*[<>=≤≥]\s*\d+(\.\d+)?%?")
+BLOOD_PRESSURE_PATTERN = re.compile(r"\d{2,3}/\d{2,3}\s*mmHg", re.IGNORECASE)
 FREQUENCY_PATTERN = re.compile(r"\b(QD|BID|TID|QID|PRN|QHS)\b")
 
 PROTECTED_PATTERNS: list[re.Pattern] = [
     DOSAGE_PATTERN,
     LAB_VALUE_PATTERN,
+    BLOOD_PRESSURE_PATTERN,
     FREQUENCY_PATTERN,
 ]
 
