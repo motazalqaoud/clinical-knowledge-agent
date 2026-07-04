@@ -3,7 +3,7 @@
 > **This document is entirely fabricated for demonstration and testing
 > purposes only.** It is not a real clinical guideline, is not affiliated
 > with any medical society, and must never be used for actual patient
-> care. It exists solely to exercise the Clinical Knowledge Agent's
+> care. It exists solely to exercise the Clinical RAG Assistant's
 > ingestion, chunking, retrieval, and generation pipeline end-to-end.
 
 ## First-line pharmacologic therapy
