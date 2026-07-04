@@ -155,18 +155,14 @@ can support.
 
 ### Measured results
 
-> **Note:** the numbers below are from the original 6-question,
-> single-document evaluation. The eval set has since grown to 10
-> questions across both sample documents (see `scripts/evaluate.py`) —
-> these numbers need a re-run to reflect the current set.
-
 Real run against `Qwen/Qwen2.5-1.5B-Instruct` + `all-MiniLM-L6-v2`
-(`python scripts/evaluate.py`, no `--fake`):
+(`python scripts/evaluate.py`, no `--fake`), full 10-question set
+across both sample documents:
 
 | Metric | Result |
 |---|---|
-| Groundedness accuracy | 5/6 |
-| Expected-keyword presence | 3/4 |
+| Groundedness accuracy | 9/10 |
+| Expected-keyword presence | 6/8 |
 
 | Question | Expected | Actual | Result |
 |---|---|---|---|
@@ -174,18 +170,30 @@ Real run against `Qwen/Qwen2.5-1.5B-Instruct` + `all-MiniLM-L6-v2`
 | What is the typical starting dose of Metformin? | Grounded | Grounded | PASS |
 | What is a common starting dose for basal insulin? | Grounded | Grounded | PASS |
 | How often should blood glucose be checked during insulin titration? | Grounded | Grounded | PASS |
+| What is the target blood pressure for most adults with hypertension? | Grounded | Grounded | PASS |
+| What is the typical starting dose of Lisinopril? | Grounded | Grounded | PASS |
+| How often should home blood pressure be monitored when starting therapy? | Grounded | Grounded | PASS |
+| What blood pressure reading defines a hypertensive urgency? | Grounded | Grounded | PASS |
 | What is the capital of France? | Insufficient | Insufficient | PASS |
 | What is the recommended surgical approach for a torn ACL? | Insufficient | **Grounded** | FAIL |
 
-The one failure is instructive, not swept under the rug: the ACL
-question retrieved a passage from the diabetes guideline whose cosine
-similarity landed just above the 0.35 `score_threshold` — general
-clinical vocabulary overlap (dosing, monitoring language) can push a
-topically-unrelated question over a fixed similarity cutoff even
-though the retrieved passage doesn't actually answer it. `score_threshold`
-is a heuristic, not a guarantee; a production deployment would want a
-larger, domain-matched corpus and a threshold validated against real
-query traffic, not a single synthetic document.
+The one groundedness failure is instructive, not swept under the rug:
+the ACL question retrieved a passage whose cosine similarity landed
+just above the 0.35 `score_threshold` — general clinical vocabulary
+overlap (dosing, monitoring language) can push a topically-unrelated
+question over a fixed similarity cutoff even though the retrieved
+passage doesn't actually answer it. `score_threshold` is a heuristic,
+not a guarantee; a production deployment would want a larger,
+domain-matched corpus and a threshold validated against real query
+traffic, not a couple of synthetic documents.
+
+There are 2 expected-keyword misses, likely grounded answers that were
+correct in substance but paraphrased rather than using the exact
+literal keyword checked for. This particular run predates
+`scripts/evaluate.py` printing which specific questions missed a
+keyword (it only reported the aggregate at the time) — the harness now
+prints a per-question `Keywords` column, so a future re-run will show
+exactly which ones.
 
 ## Clinical Context
 

@@ -138,16 +138,20 @@ def run_eval(chain: RAGChain, cases: list[EvalCase] | None = None) -> list[dict]
 
 def print_report(results: list[dict]) -> None:
     """Prints a human-readable summary of eval results."""
-    print(f"{'Question':<62} {'Expected':<9} {'Actual':<9} {'OK'}")
-    print("-" * 90)
+    print(f"{'Question':<62} {'Expected':<9} {'Actual':<9} {'OK':<6} {'Keywords'}")
+    print("-" * 100)
     for r in results:
         mark = "PASS" if r["grounded_correct"] else "FAIL"
+        if r["keywords_present"] is None:
+            keyword_mark = "-"
+        else:
+            keyword_mark = "PASS" if r["keywords_present"] else "FAIL"
         question = (
             r["question"] if len(r["question"]) <= 60 else r["question"][:57] + "..."
         )
         print(
             f"{question:<62} {str(r['expected_grounded']):<9} "
-            f"{str(r['actual_grounded']):<9} {mark}"
+            f"{str(r['actual_grounded']):<9} {mark:<6} {keyword_mark}"
         )
 
     grounded_correct = sum(r["grounded_correct"] for r in results)
