@@ -168,3 +168,13 @@ class FAISSVectorStore:
 
     def __len__(self) -> int:
         return len(self._metadata)
+
+    @property
+    def sources(self) -> set[str]:
+        """Distinct source filenames currently stored.
+
+        Clinical note: lets callers (e.g. the Gradio app) check whether a
+        document has already been ingested before adding it again,
+        preventing silent duplicate accumulation in the index.
+        """
+        return {entry["source"] for entry in self._metadata}
